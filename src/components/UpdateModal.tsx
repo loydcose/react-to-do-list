@@ -1,17 +1,18 @@
-import axios from "axios"
 import CloseBtn from "./CloseBtn"
 import { Dispatch, MouseEventHandler, useState } from "react"
-import { jsonBaseUrl } from "../constants"
-import { Todo } from "../types"
+import { storageName } from "../constants"
+import { Data, Todo } from "../types"
 
 export default function UpdateModal({
   updateTodo,
   setUpdateTodo,
-  fetchTodos,
+  data,
+  refreshStorage,
 }: {
   setUpdateTodo: Dispatch<Todo | null>
-  fetchTodos: () => void
   updateTodo: Todo
+  data: Data | undefined
+  refreshStorage: () => void
 }) {
   const [formValues, setFormValues] = useState({
     title: updateTodo.title,
@@ -21,35 +22,45 @@ export default function UpdateModal({
   const handleSubmit: MouseEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault()
     const { title, comment } = formValues
-    const payload = {
-      ...updateTodo,
-      title,
-      comment,
-    }
 
-    axios
-      .put(`${jsonBaseUrl}/todos/${updateTodo.id}`, payload)
-      .then((result) => {
-        console.log(result)
-        setUpdateTodo(null)
-        fetchTodos()
-      })
-      .catch((error) => {
-        console.error(error)
-      })
+    const updatedTodos = data?.todos.map((todo) => {
+      if (todo.id === updateTodo.id) {
+        return {
+          ...updateTodo,
+          title,
+          comment,
+        }
+      } else {
+        return todo
+      }
+    })
+
+    if (data) {
+      localStorage.setItem(
+        storageName,
+        JSON.stringify({
+          users: [...data.users],
+          todos: updatedTodos,
+        } as Data)
+      )
+      setUpdateTodo(null)
+      refreshStorage()
+    }
   }
 
   const handleDelete = () => {
-    axios
-      .delete(`${jsonBaseUrl}/todos/${updateTodo.id}`)
-      .then((result) => {
-        console.log(result)
-        setUpdateTodo(null)
-        fetchTodos()
-      })
-      .catch((error) => {
-        console.error(error)
-      })
+    const updatedTodos = data?.todos.filter((todo) => todo.id !== updateTodo.id)
+    if (data) {
+      localStorage.setItem(
+        storageName,
+        JSON.stringify({
+          users: [...data.users],
+          todos: updatedTodos,
+        } as Data)
+      )
+      setUpdateTodo(null)
+      refreshStorage()
+    }
   }
 
   return (

@@ -1,40 +1,45 @@
-import axios from "axios"
-import useUser from "../hooks/useUser"
 import CloseBtn from "./CloseBtn"
 import { Dispatch, MouseEventHandler, useState } from "react"
-import { jsonBaseUrl } from "../constants"
+import { storageName } from "../constants"
+import { Data, User } from "../types"
 
 export default function AddModal({
   setOpenAddModal,
-  fetchTodos,
+  data,
+  user,
+  refreshStorage,
 }: {
   setOpenAddModal: Dispatch<boolean>
-  fetchTodos: () => void
+  data: Data | undefined
+  user: User | null
+  refreshStorage: () => void
 }) {
   const [formValues, setFormValues] = useState({
     title: "",
     comment: "",
   })
-  const { user } = useUser()
-
   const handleSubmit: MouseEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault()
     const { title, comment } = formValues
-    const payload = {
-      authorId: user!.id,
-      title,
-      comment,
+
+    if (data && user) {
+      const payload = {
+        authorId: user.id,
+        title,
+        comment,
+        id: Date.now(),
+      }
+
+      localStorage.setItem(
+        storageName,
+        JSON.stringify({
+          users: [...data.users],
+          todos: [...data.todos, payload],
+        } as Data)
+      )
+      setOpenAddModal(false)
+      refreshStorage()
     }
-    axios
-      .post(`${jsonBaseUrl}/todos`, payload)
-      .then((result) => {
-        console.log(result)
-        setOpenAddModal(false)
-        fetchTodos()
-      })
-      .catch((error) => {
-        console.error(error)
-      })
   }
 
   return (
@@ -86,12 +91,6 @@ export default function AddModal({
           />
         </div>
         <div className="flex gap-4 items-center justify-end">
-          <button
-            type="button"
-            className="text-white bg-red-600 hover:bg-red-700 rounded-md px-4 py-2"
-          >
-            Delete
-          </button>
           <button
             type="submit"
             className="text-white bg-blue-600 hover:bg-blue-700 rounded-md px-4 py-2"

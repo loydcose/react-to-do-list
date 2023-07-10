@@ -11,3 +11,8 @@ export type Todo = {
   title: string
   comment: string
 }
+
+export type Data = {
+  users: User[],
+  todos: Todo[]
+}

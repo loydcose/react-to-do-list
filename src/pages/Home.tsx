@@ -1,30 +1,44 @@
 import AddModal from "../components/AddModal"
 import { useState } from "react"
-import useTodos from "../hooks/useTodos"
 import UpdateModal from "../components/UpdateModal"
-import { Todo } from "../types"
-import useUser from "../hooks/useUser"
-import { jsonBaseUrl } from "../constants"
-import axios from "axios"
+import { Data, Todo, User } from "../types"
+import { storageName } from "../constants"
 
-export default function Home() {
+type PropTypes = {
+  data: Data | undefined
+  user: User | null
+  userTodos: Todo[] | undefined
+  refreshStorage: () => void
+}
+
+export default function Home({
+  data,
+  user,
+  userTodos,
+  refreshStorage,
+}: PropTypes) {
   const [openAddModal, setOpenAddModal] = useState(false)
   const [updateTodo, setUpdateTodo] = useState<Todo | null>(null)
-  const { userTodos, fetchTodos } = useTodos()
-  const { user } = useUser()
 
   const handleSignOut = () => {
-    axios
-      .put(`${jsonBaseUrl}/users/${user!.id}`, { ...user, isActive: false })
-      .then((result) => {
-        console.log(result)
-        if (window.top) {
-          window.top.location.href = "/"
-        }
-      })
-      .catch((error) => {
-        console.error(error)
-      })
+    const updatedUsers = data?.users.map((item) => {
+      if (item.id === user?.id) {
+        return { ...item, isActive: false }
+      } else {
+        return item
+      }
+    })
+
+    if (data) {
+      localStorage.setItem(
+        storageName,
+        JSON.stringify({
+          users: updatedUsers,
+          todos: [...data.todos],
+        } as Data)
+      )
+      refreshStorage()
+    }
   }
 
   return (
@@ -46,7 +60,7 @@ export default function Home() {
         </nav>
         <div className="w-full mx-auto max-w-[550px] flex flex-col gap-6 items-stretch justify-center">
           <h1 className="font-semibold text-2xl text-center">TODO LIST 📃</h1>
-          {userTodos.map((todo) => (
+          {userTodos?.map((todo) => (
             <button
               onClick={() => setUpdateTodo(todo)}
               key={todo.id}
@@ -81,11 +95,17 @@ export default function Home() {
         <UpdateModal
           updateTodo={updateTodo}
           setUpdateTodo={setUpdateTodo}
-          fetchTodos={fetchTodos}
+          data={data}
+          refreshStorage={refreshStorage}
         />
       )}
       {openAddModal && (
-        <AddModal setOpenAddModal={setOpenAddModal} fetchTodos={fetchTodos} />
+        <AddModal
+          setOpenAddModal={setOpenAddModal}
+          data={data}
+          user={user}
+          refreshStorage={refreshStorage}
+        />
       )}
     </main>
   )

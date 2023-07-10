@@ -1,42 +1,50 @@
-import axios from "axios"
 import { FormEventHandler, useState } from "react"
-import { jsonBaseUrl } from "../constants"
+import { storageName } from "../constants"
 import useAuth from "../hooks/useAuth"
-import { User } from "../types"
+import { Data, Todo, User } from "../types"
 
-export default function Signin() {
+type PropTypes = {
+  data: Data | undefined
+  user: User | null
+  userTodos: Todo[] | undefined
+  refreshStorage: () => void
+}
+
+export default function Signin({ data, user, refreshStorage }: PropTypes) {
   const [formValues, setFormValues] = useState({
     username: "",
     password: "",
   })
   const [helper, setHelper] = useState("")
-  const { users } = useAuth()
+  useAuth(user)
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault()
 
-    console.log(users)
-
     const { username, password } = formValues
-    const user: User | undefined | null = users.find(
+    const user: User | undefined | null = data?.users.find(
       (user: User) => user.username === username
     )
 
     if (user && user.password === password) {
-      axios
-        .put(`${jsonBaseUrl}/users/${user.id}`, {
-          ...user,
-          isActive: true,
-        })
-        .then((result) => {
-          console.log(result)
-          if (window.top) {
-            window.top.location.href = "/"
-          }
-        })
-        .catch((error) => {
-          console.error(error)
-        })
+      const updatedUsers = data?.users.map((item) => {
+        if (item.id === user.id) {
+          return { ...item, isActive: true }
+        } else {
+          return item
+        }
+      })
+
+      if (data) {
+        localStorage.setItem(
+          storageName,
+          JSON.stringify({
+            users: updatedUsers,
+            todos: [...data.todos],
+          } as Data)
+        )
+        refreshStorage()
+      }
     } else {
       setHelper("Wrong credentials")
     }
@@ -72,7 +80,7 @@ export default function Signin() {
               onChange={(e) =>
                 setFormValues({ ...formValues, password: e.target.value })
               }
-              type="text"
+              type="password"
               id="password"
               placeholder="Enter your password..."
               className="border border-slate-300 px-4 py-2 rounded-md"

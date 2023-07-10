@@ -1,3 +1,3 @@
-const jsonBaseUrl = "http://localhost:4000"
+const storageName = "reactTodo"
 
-export { jsonBaseUrl }
+export { storageName }

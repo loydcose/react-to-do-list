@@ -1,16 +1,23 @@
-import axios from "axios"
 import { FormEventHandler, useState } from "react"
-import { jsonBaseUrl } from "../constants"
+import { storageName } from "../constants"
 import useAuth from "../hooks/useAuth"
+import { Data, Todo, User } from "../types"
 
-export default function Signup() {
+type PropTypes = {
+  data: Data | undefined
+  user: User | null
+  userTodos: Todo[] | undefined
+  refreshStorage: () => void
+}
+
+export default function Signup({ data, user, refreshStorage }: PropTypes) {
   const [formValues, setFormValues] = useState({
     username: "",
     password: "",
     confirmPassword: "",
   })
   const [helper, setHelper] = useState("")
-  useAuth()
+  useAuth(user)
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault()
@@ -22,22 +29,22 @@ export default function Signup() {
     }
 
     const payload = {
+      id: Date.now(),
       username,
       password,
       isActive: true,
     }
 
-    axios
-      .post(jsonBaseUrl + "/users", payload)
-      .then((result) => {
-        console.log(result)
-        if (window.top) {
-          window.top.location.href = "/"
-        }
-      })
-      .catch((error) => {
-        console.error(error)
-      })
+    if (data) {
+      localStorage.setItem(
+        storageName,
+        JSON.stringify({
+          users: [...data.users, payload],
+          todos: [...data.todos],
+        } as Data)
+      )
+      refreshStorage()
+    }
   }
 
   return (
@@ -71,7 +78,7 @@ export default function Signup() {
               onChange={(e) =>
                 setFormValues({ ...formValues, password: e.target.value })
               }
-              type="text"
+              type="password"
               id="password"
               placeholder="Enter your password..."
               className="border border-slate-300 px-4 py-2 rounded-md"
@@ -89,7 +96,7 @@ export default function Signup() {
                   confirmPassword: e.target.value,
                 })
               }
-              type="text"
+              type="password"
               id="confirmPassword..."
               placeholder="Confirm your password"
               className="border border-slate-300 px-4 py-2 rounded-md"
